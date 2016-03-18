@@ -56,7 +56,7 @@ echo "data_interval is $data_interval ---";
 
 		$data_interval_array = explode('-',$data_interval);
 		if ($data_interval_array[1] == 's') { // seconds
-			$t = 1 * $data_interval_array[0]; // convert to seconds
+			$t = 5 * $data_interval_array[0]; // convert to seconds
 		} elseif ($data_interval_array[1] == 'i') { // minutes
 			$t = 60 * $data_interval_array[0]; // convert to seconds
 		} elseif ($data_interval_array[1] == 'h') { //hour
@@ -120,7 +120,7 @@ echo "data_interval is $data_interval ---";
 		
 
 	    
-		
+	$json_rows = "[";	
 	unset($format_datetime);
 	unset($phase1_apparent_power);
 	unset($phase2_apparent_power);
@@ -141,7 +141,7 @@ echo "data_interval is $data_interval ---";
 					  " AND `datetime` <= " . $db->quote($to_datetime)  
 				);
 		if ($t > 1) { // more than 1 s data interval, need to group and average
-			$query->group( "(TIME_TO_SEC(datetime) - (TIME_TO_SEC (datetime) % ($t) ) )" );		
+			//$query->group( "(TIME_TO_SEC(datetime) - (TIME_TO_SEC (datetime) % ($t) ) )" );		
 		}
 		$query->order('datetime ASC');
 	
@@ -149,7 +149,8 @@ echo "data_interval is $data_interval ---";
 
 		$db->setQuery($query,0,$num_records);
 		$rows = $db->loadAssocList();
-JLog::add(JText::_(" getVar rows[0] is : $rows[0]"), JLog::ERROR, 'jerror');	
+		
+		JLog::add(JText::_(" return rows is : ".var_dump($rows)), JLog::ERROR, 'jerror');	
 		
 		$t = 0; //for get every $s loop time value of format_datetime
 			foreach ($rows as $row){
@@ -163,36 +164,42 @@ JLog::add(JText::_(" getVar rows[0] is : $rows[0]"), JLog::ERROR, 'jerror');
     }//for(query)
 		
 	
-	$ArrO = 0;
+	
+	 
+	//unset($json_rows);
+	
         for ($s = 0; $s < $mchk; $s++){
-			if (!$ArrO) { $ArrO = 1;}
-			else {echo ",";}
 			
 			$ArrA = 0;
 			for($t = 0; $t <$count_time[$s]; $t++){
 				if (!$ArrA) { $ArrA = 1;}
-			    else {echo ",";}
+			    else {$jn = $jn.",";}
 				if(sizeof($meter_address) == 1){
-		            $row[] =$format_datetime[$s."_".$t].",".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t]." ]";
+		            $jn = $jn.'{"datetime":"'.$format_datetime[$s.'_'.$t].'","M'.$meter_address[$s].'Pa":"'.$phase1_apparent_power[$s."_".$t].'","M'.$meter_address[$s].'Pb":"'.$phase2_apparent_power[$s.'_'.$t].'","M'.$meter_address[$s].'Pc":"'.$phase3_apparent_power[$s.'_'.$t].'"}';
 				}else{
-					echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t].", ";
+					 $jn = $jn.'{"datetime":"'.$format_datetime[$s.'_'.$t].'","M'.$meter_address[$s].'Pa":"'.$phase1_apparent_power[$s.'_'.$t].'","M'.$meter_address[$s].'Pb":"'.$phase2_apparent_power[$s.'_'.$t].'","M'.$meter_address[$s].'Pc":"'.$phase3_apparent_power[$s.'_'.$t].'",';
 					
 					
 					$ArrB = 0;
 					for($i = 1; $i < $mchk; $i++){
 						if (!$ArrB) { $ArrB = 1;}
-			            else {echo ",";}
-						echo $phase1_apparent_power[$i."_".$t].",".$phase2_apparent_power[$i."_".$t].", ".$phase3_apparent_power[$i."_".$t];	 
+			            else {$jn = $jn.',';}
+						$jn = $jn.'"M'.$meter_address[$i].'Pa":"'.$phase1_apparent_power[$i.'_'.$t].'","M'.$meter_address[$i].'Pb":"'.$phase2_apparent_power[$i.'_'.$t].'","M'.$meter_address[$i].'Pb":"'.$phase3_apparent_power[$i.'_'.$t];	 
 					}
-					
-					echo "]";
+					 $jn = $jn.'"}';
 				}//if
 			}//for($t)
-				
+		
 		}//for($s)
-	
-JLog::add(JText::_(" getVar rows is : json_encode($rows)"), JLog::ERROR, 'jerror');			
-		return json_encode($rows);
+			
+		//$json_rows = $json_rows.$jn;
+		$json_rows = $json_rows.$jn.']';
+		
+        //$json_rows = json_encode($json_rows);	
+	    //return json_encode($json_rows);
+JLog::add(JText::_(" return rows is : $json_rows"), JLog::ERROR, 'jerror');			
+		//return json_encode($rows);
+		return $json_rows;
 	} // getChartData
 
 	

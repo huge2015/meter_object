@@ -57,122 +57,95 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	}
 	
 	echo "<br>";
-	var_dump($meter_address);
+	//var_dump($meter_address);
 	echo "<br>mchk: $mchk";
 	echo "<br>met: $met";
 	
 
-        switch($expression){//change value of Time_interval while change TimeFrame
-			case '5-y new':
-			    $Time_interval = '5 years';
-				break;
-			case '2-y new':
-			    $Time_interval = '2 years';
-				break;
-			case '1-y new':
-			    $Time_interval = 'Year';
-				break;
-			case '1-q new':
-			    $Time_interval = 'Quarter';
-				break;
-            case '1-m new':
-			    $Time_interval = 'Month';
-				break;
-            case '1-w new':
-			    $Time_interval = 'Week';
-				break;
-			case '1-d new':
-			   $Time_interval = 'Day';
-				break;
-            case '1-h new':
-			    $Time_interval = 'Hour';
-				break;
-            case '1-i new':
-			    $Time_interval = 'Minute';
-				break;
-            default:
-                break;			
-		}
-
-
-		
-		
+    $num_records = 30;
 	
-	echo "lastRowIndex = chartData.addRows([ ";
+	$select_string = '`electrical_id`, `meter_address`, `location_id`, MAX(`datetime`) AS `datetime`, AVG(`phase1_apparent_power`) AS phase1_apparent_power, AVG(`phase2_apparent_power`) AS phase2_apparent_power, AVG(`phase3_apparent_power`) AS phase3_apparent_power';
 	
+	$from_datetime = date('Y-m-d H:i:s', ( time() - 5*60) ); 
+	$to_datetime = date('Y-m-d H:i:s');	
 	
-		$from_datetime = date('Y-m-d H:i:s', ( time() - 5*60) ); 
+	unset($format_datetime);
+	unset($phase1_apparent_power);
+	unset($phase2_apparent_power);
+	unset($phase3_apparent_power);
+	unset($count_time);
+	
+	for($s = 0; $s < $mchk; $s++){	
+		$db = JFactory::getDbo();
+		$query = $db->getQuery(true);
+//		$query->select( $db->quoteName($columns) );
+		$query->select( $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_apparent_power',  'phase2_apparent_power',  'phase3_apparent_power')) );
+
+		$query->from( $db->quoteName("#__electrical") );		
+		$query->where(
+		              $db->quoteName('location_id')." = ".$db->quote($location_id) . 
+					  " AND `meter_address` >= " . $db->quote($meter_address[$s]) . 
+				      " AND `datetime` >= " . $db->quote($from_datetime) . 
+					  " AND `datetime` <= " . $db->quote($to_datetime)  
+				);
+		//if ($t > 1) { // more than 1 s data interval, need to group and average
+			//$query->group( "(TIME_TO_SEC(datetime) - (TIME_TO_SEC (datetime) % ($t) ) )" );		
+		//}
+		$query->order('datetime ASC');
+	
+//  echo("query is " . $query->__toString() . '---');
+
+		$db->setQuery($query,0,$num_records);
+		$rows = $db->loadAssocList();
 		
-		//$firs_s = 0;
-		unset($format_datetime);
-		unset($phase1_apparent_power);
-		unset($phase2_apparent_power);
-		unset($phase3_apparent_power);
-		unset($count_time);
+			
 		
-		for($s = 0; $s < $mchk; $s++){
-			// read electrical status
-			$db = JFactory::getDbo();
-			$query = $db->getQuery(true);
-			$query->select( $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_apparent_power',  'phase2_apparent_power',  'phase3_apparent_power') ) );
-			//$query->select('*');   
-			$query->from( $db->quoteName('#__electrical') );
-			$query->where( 
-			            $db->quoteName('location_id')." = ".$db->quote($location_id) .
-                        " AND `meter_address` = " . $db->quote($meter_address[$s]) . 					
-				        " AND `datetime` >= " . $db->quote($from_datetime) 
-					);
-			$query->order('datetime DESC');
-			$db->setQuery($query,0,180);
-			$rows = $db->loadAssocList();
-
-			sort($rows);
-
-
-			//$firsttime = 0;
-			$t = 0; //for get every $s loop time value of format_datetime
+		$t = 0; //for get every $s loop time value of format_datetime
 			foreach ($rows as $row){
 				    $phase1_apparent_power[$s."_".$t] = $row['phase1_apparent_power'];
 				    $phase2_apparent_power[$s."_".$t] = $row['phase2_apparent_power'];
 				    $phase3_apparent_power[$s."_".$t] = $row['phase3_apparent_power'];
-					$datetime = new DateTime($row['datetime']);
-				    $format_datetime[$s."_".$t] = $datetime->format('Y,m-1,d,H,i,s'); // need to reduce month by 1 as JS month starts from 
-				
+					$format_datetime[$s."_".$t] = $row['datetime'];
 			    $t++;	
 			}// for each
 			$count_time[$s] = $t ;
-            //var_dump($count_time);
-	    }//for($s)
+    }//for(query)
 		
-	    $ArrO = 0;
+	
+	
+	 
+	 unset($jrows);
+	
         for ($s = 0; $s < $mchk; $s++){
-			if (!$ArrO) { $ArrO = 1;}
-			else {echo ",";}
 			
-			$ArrA = 0;
 			for($t = 0; $t <$count_time[$s]; $t++){
-				if (!$ArrA) { $ArrA = 1;}
-			    else {echo ",";}
 				if(sizeof($meter_address) == 1){
-		            echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t]." ]";
+		            $jrows[$t]['datetime'] = $format_datetime[$s.'_'.$t];
+					$jrows[$t]['M'.$meter_address[$s].'Pa'] = $phase1_apparent_power[$s."_".$t];
+					$jrows[$t]['M'.$meter_address[$s].'Pb'] = $phase2_apparent_power[$s."_".$t];
+					$jrows[$t]['M'.$meter_address[$s].'Pc'] = $phase3_apparent_power[$s."_".$t];
+					
 				}else{
-					echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t].", ";
+					$jrows[$t]['datetime'] = $format_datetime[$s.'_'.$t];
+					$jrows[$t]['M'.$meter_address[$s].'Pa'] = $phase1_apparent_power[$s."_".$t];
+					$jrows[$t]['M'.$meter_address[$s].'Pb'] = $phase2_apparent_power[$s."_".$t];
+					$jrows[$t]['M'.$meter_address[$s].'Pc'] = $phase3_apparent_power[$s."_".$t];
 					
-					
-					$ArrB = 0;
 					for($i = 1; $i < $mchk; $i++){
-						if (!$ArrB) { $ArrB = 1;}
-			            else {echo ",";}
-						echo $phase1_apparent_power[$i."_".$t].",".$phase2_apparent_power[$i."_".$t].", ".$phase3_apparent_power[$i."_".$t];	 
+						$jrows[$t]['M'.$meter_address[$i].'Pa'] = $phase1_apparent_power[$i.'_'.$t];
+					    $jrows[$t]['M'.$meter_address[$i].'Pb'] = $phase2_apparent_power[$i.'_'.$t];
+					    $jrows[$t]['M'.$meter_address[$i].'Pc'] = $phase3_apparent_power[$i.'_'.$t];	 
 					}
 					
-					echo "]";
 				}//if
 			}//for($t)
-				
-		}//for($s)	
 		
-	echo " ]);";
+		}//for($s)
+			
+		
+        $json_rows = json_encode($jrows);
+		
+		echo "<br><br><br>json_rows : ".$json_rows;
 	
 ?>
 

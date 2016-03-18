@@ -20,7 +20,7 @@ class JConfig {
 	public $live_site = '';
 	public $secret = 'JvW0uRHOrjf4fjst';
 	public $gzip = '0';
-	public $error_reporting = 'development';
+	public $error_reporting = 'default';
 	public $helpurl = 'http://help.joomla.org/proxy/index.php?option=com_help&keyref=Help{major}{minor}:{keyref}';
 	public $ftp_host = '';
 	public $ftp_port = '';
