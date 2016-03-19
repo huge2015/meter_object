@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" version="3.1" client="site" method="upgrade">
+	<name>mod_param_update</name>
+	<author>Tang</author>
+	<creationDate>12 2015</creationDate>
+	<copyright>Copyright (C) 2015 All rights reserved.</copyright>
+	<authorEmail>admin@electromonitor.com</authorEmail>
+	<authorUrl>www.electromonitor.com</authorUrl>
+	<version>0.1.0</version>
+	<description>参数设置更新</description>
+	<files>
+		<filename module="mod_param_update">mod_param_update.php</filename>
+		<filename>helper.php</filename>
+		<folder>tmpl</folder>
+		<filename>tmpl/default.php</filename>
+		<filename>css/styles.css</filename>
+	</files>
+</extension>

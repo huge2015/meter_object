@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" version="3.1" client="site" method="upgrade">
+	<name>Upload data Excute</name>
+	<author>Tang</author>
+	<creationDate></creationDate>
+	<copyright>Copyright (C) 2015 All rights reserved.</copyright>
+	<authorEmail>admin@electromonitor.com</authorEmail>
+	<authorUrl>www.electromonitor.com</authorUrl>
+	<version>0.1.0</version>
+	<description>上传数据执行</description>
+	<files>
+		<filename module="mod_upload_excute">mod_upload_excute.php</filename>
+		<filename>helper.php</filename>
+		<folder>tmpl</folder>
+		<filename>tmpl/default.php</filename>
+		<filename>css/styles.css</filename>
+	</files>
+</extension>

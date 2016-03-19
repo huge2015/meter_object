@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module"
+           version="1.0"
+           method="upgrade">
+	<name>Chart Module</name>
+	<creationDate>2015-12-05</creationDate>
+	<author>Sam Lee</author>
+	<authorUrl>http://electromonitor.com</authorUrl>
+	<copyright>Copyright (C) 2015. All rights reserved.</copyright>
+	<license>-</license>
+	<version>1.0</version>
+	<description>Module to retrieve data using Ajax for chart</description>
+
+	<files>
+		<filename module="mod_chart">mod_chart.php</filename>
+		<filename>helper.php</filename>
+		<folder>tmpl</folder>
+	</files>
+	
+	<media folder="media" destination="mod_chart">
+		<folder>js</folder>
+	</media>
+
+</extension>
