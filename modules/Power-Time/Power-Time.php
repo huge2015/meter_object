@@ -1,24 +1,25 @@
 ﻿<?php
 
-$js = JURI::base().'modules/Power-Time/js/jsapi.js';  
+//jimport('joomla.log.log');
+//JLog::addLogger(array());
+
+$js = JURI::base().'modules/Voltage-Time/js/jsapi.js';  
 $document = JFactory::getDocument($js);  
 $document->addScript($js); 
 
-$zh_CN = JURI::base().'modules/Power-Time/js/format+zh_CN,default+zh_CN,ui+zh_CN,corechart+zh_CN.I.js';  
+$zh_CN = JURI::base().'modules/Voltage-Time/js/format+zh_CN,default+zh_CN,ui+zh_CN,corechart+zh_CN.I.js';  
 $document2 = JFactory::getDocument($zh_CN);  
 $document2->addScript($zh_CN); 
 
-$corechart = JURI::base().'modules/Power-Time/js/corechart.js';  
+$corechart = JURI::base().'modules/Voltage-Time/js/corechart.js';  
 $document3 = JFactory::getDocument($corechart);  
 $document3->addScript($corechart);
 
-
-
-$date = JURI::base().'modules/Power-Time/js/date.js';  
+$date = JURI::base().'modules/Voltage-Time/js/date.js';  
 $document4 = JFactory::getDocument($date);  
 $document4->addScript($date); 
 
-$jq = JURI::base().'modules/Power-Time/js/jquery-1.11.1.min.js';  
+$jq = JURI::base().'modules/Voltage-Time/js/jquery-1.9.1.js';  
 $document5 = JFactory::getDocument($jq);  
 $document5->addScript($jq);
 
@@ -27,7 +28,6 @@ date_default_timezone_set('ASIA/Singapore');
 
 
 $location_id = trim(JRequest::getVar('location_id', '1')); 
-$meter_address = trim(JRequest::getVar('meter_address', '01')); 
 $expression = trim(JRequest::getVar('expression', '1-i new')); 
 $live_data = trim(JRequest::getVar('live_data', '1')); 
 
@@ -41,17 +41,51 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	$Inforows = $db->loadAssocList();
         
 	$met = 0;
+	$mchk = 0;
+	$count_Mvalue = 0; //for check Array meter_address is empty
+	$M_address = "";  //Format Array [meter_address] ,for upload meter_address by ajax data style, while element jump the next one follow "," 
 	unset($Meter);
 	unset($MeterValue);
+	unset($meter_address);
     foreach($Inforows AS $InfoVaule){
 		$Meter[$met] = "Meter".$InfoVaule['meter_address'];	
         $MeterValue[$met] = trim(JRequest::getVar("$Meter[$met]", '-1'));
-	    echo "<br>$Meter[$met] : $MeterValue[$met]";
-	   
+	    //echo "<br>$Meter[$met] : $MeterValue[$met]";
+		$count_Mvalue = $count_Mvalue + $MeterValue[$met] + 1;  //if $count_Mvalue = 0 Array meter_address is empty
+		
+		if($MeterValue[$met] == "1"){
+			
+		    $meter_address[$mchk] = $InfoVaule['meter_address'];
+			
+			if($M_address == ""){
+				$M_address = $meter_address[$mchk];
+			}else{
+				$M_address = $M_address."-".$meter_address[$mchk];
+			}
+			
+			$mchk++;
+		}
+		
     $met++;
     }
+	
+	
 
-switch($expression){//change value of Time_interval while change TimeFrame
+	//echo "<br>$count_Mvalue"; 
+	if($count_Mvalue == 0){ //while all meter none cheched
+		$meter_address[0] = '01';
+		$M_address = '01';
+		$mchk++;
+	}
+	
+	echo "<br>";
+	var_dump($meter_address);
+	echo "<br>mchk: $mchk";
+	echo "<br>met: $met";
+	echo "<br>M_address: $M_address";
+	
+
+        switch($expression){//change value of Time_interval while change TimeFrame
 			case '5-y new':
 			    $Time_interval = '5 years';
 				break;
@@ -86,56 +120,28 @@ switch($expression){//change value of Time_interval while change TimeFrame
 ?>
    
 <script type="text/javascript">// <![CDATA[
+
 	chart = null; // global variable
 	chartData = null; // global variable
 	chartOptions = null; // global variable
 	dataToLoad = ''; // global variable
 	chartCol = []; //global variable
 	chartCol[0] = {'db_col_name': 'datetime', 'chart_data_type' : 'datetime', 'chart_label' : 'Date Time' };
+	chartCol[1] = {'db_col_name': 'phase1_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'Phase 1 Apparent Power'};
+	chartCol[2] = {'db_col_name': 'phase2_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'Phase 2 Apparent Power'};
+	chartCol[3] = {'db_col_name': 'phase3_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'Phase 3 Apparent Power'};
 	datetimeColumnIndex = 0; // global variable
-	
-	var col = 1;
-	
-	var first_col = 1;
-	
-	var Meter01 = '<?php echo $MeterValue[0];?>';
-	var Meter04 = '<?php echo $MeterValue[1];?>';
-	
-	if(Meter01 == "1"){
-		chartCol[col] = {'db_col_name': 'phase1_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'M1 Phase 1 Apparent Power'};
-		col++;
-		chartCol[col] = {'db_col_name': 'phase2_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'M1 Phase 2 Apparent Power'};
-		col++;
-		chartCol[col] = {'db_col_name': 'phase3_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'M1 Phase 3 Apparent Power'};
-		col++;
-	}
-	
-	if(Meter04 == "1"){
-		chartCol[col] = {'db_col_name': 'phase1_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'M4 Phase 1 Apparent Power'};
-		col++;
-		chartCol[col] = {'db_col_name': 'phase2_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'M4 Phase 2 Apparent Power'};
-		col++;
-		chartCol[col] = {'db_col_name': 'phase3_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'M4 Phase 3 Apparent Power'};
-		col++;
-	}
-	
-	
-	
-	
-	
-	
 	vChartAxisMinValue = 0; // global
 	vChartAxisMaxValue = 0.2; // global
 	
 	
-	var Phase1_Power = 1;
-	var Phase2_Power = 1;
-	var Phase3_Power = 1;
-	
 	var location_id = '<?php echo $location_id;?>';
-	var meter_address = '<?php echo $meter_address;?>';
+	//var meter_address = '<?php echo $meter_address;?>';
+	var meter_address = '<?php echo $M_address;?>';
 	var expression = '<?php echo $expression;?>';
 	var Time_interval = '<?php echo $Time_interval;?>';
+    
+	alert(meter_address);
 	
 	var live_data = <?php echo $live_data;?>;
 	var control_redraw = 0; //while 0 allow ,while 1 redraw one time for show histroy chart
@@ -146,7 +152,7 @@ switch($expression){//change value of Time_interval while change TimeFrame
 		if (first_time) { first_time = 0;} else { dbColumns += ',';}
 		dbColumns = dbColumns + chartCol[k]['db_col_name'];
 	} // for k
-   alert(dbColumns);
+   //alert(dbColumns);
    
 	dbTable = 'electrical'; // global variable
 	lastRowIndex = 0; // global
@@ -164,51 +170,22 @@ switch($expression){//change value of Time_interval while change TimeFrame
 	// instantiates the pie chart, passes in the data and
 	// draws it.
 
-	//
-	function clearLoading2() {document.getElementById('chartcurtain').style.display="none"; }
-	function clearLoading() {
-		var i = 100; 
-        function $(id) {return document.getElementById(id);} 
-        function chang_display() { 
-          i--;
-          var div = $('chartcurtain'); 
-          div.style.filter = "Alpha(Opacity="+i+")"; 
-          div.style.opacity = i / 100; 
-          if ( i== "0"){
-			document.getElementById('chartcurtain').style.display="none";//隐藏 
-            exit 
-          } 
-        } 
-        setInterval(chang_display, 10);    
-	}
-	
-	function startLoading() {
-		var i = 99; 
-        function $(id) {return document.getElementById(id);} 
-        function chang_block() { 
-          i++; 
-          var div = $('chartcurtain'); 
-          div.style.filter = "Alpha(Opacity="+i+")"; 
-          div.style.opacity = i / 100; 
-          if ( i== "100"){
-			document.getElementById('chartcurtain').style.display="block";//隐藏 
-			exit
-          }
-        } 
-        setInterval(chang_block, 0);   
-	}
-	
 	
 	function drawChart() {
 		// Create the data table.
 		chartData = new google.visualization.DataTable(); 
 		chartData.addColumn('datetime', 'Time');
-
-	if(Meter01 == "1"){
-		chartData.addColumn('number', 'M1 Phase1_Power');
-		chartData.addColumn('number', 'M1 Phase2_Power');
-		chartData.addColumn('number', 'M1 Phase3_Power');
-	}
+        
+		
+	    var mchk = '<?php echo $mchk;?>';
+		//var m = 0;
+	    for( var m = 0; m < mchk; m++){
+			
+		    chartData.addColumn('number', 'M'+ m +' Pa');
+		    chartData.addColumn('number', 'M'+ m +' Pb');
+		    chartData.addColumn('number', 'M'+ m +' Pc');	
+	    }
+		
 	
 	/*if(Meter04 == "1"){
 		chartData.addColumn('number', 'M4 Phase1_Power');
@@ -218,8 +195,8 @@ switch($expression){//change value of Time_interval while change TimeFrame
 		
 
 		// Set chart options
-		chartOptions = {'title':'Power against Time (Last updated time is '+'<?php "<font clolr=#blue>"; ?>' + Date.now().toString('yyyy-MM-dd HH:mm:ss') + '<?php "</font>"; ?>'+ ')  Meter: ['+ meter_address +']    Time interval:['+ Time_interval +']',
-			'vAxis':{'title':'Power (kW)', 'minValue':vChartAxisMinValue, 'maxValue':vChartAxisMaxValue},
+		chartOptions = {'title':'Power against Time (Last updated time is '+'<?php "<font clolr=#blue>"; ?>' + Date.now().toString('yyyy-MM-dd HH:mm:ss') + '<?php "</font>"; ?>'+ ')  Meter: '+ meter_address +'    Time interval:['+ Time_interval +']',
+			'vAxis':{'title':'Power (kWh)', 'minValue':vChartAxisMinValue, 'maxValue':vChartAxisMaxValue},
 			'hAxis':{'title':'Time', 'minValue': (5).minutes().ago(), 'maxValue':Date.now()},
 			'width':700,
 			'height':300};
@@ -234,21 +211,32 @@ switch($expression){//change value of Time_interval while change TimeFrame
 		var data_interval = '1-i';
 
 		// getChartDataToDataToLoad(table, location_id, meter_address, columns, from_datetime_string, to_datetime_string, num_records, data_interval);
-
 		// setTimeout( loadDataToChart('new'), 3000);
 		
-       
+ 
 <?php
+	echo "lastRowIndex = chartData.addRows([ ";
+	
+	
+		$from_datetime = date('Y-m-d H:i:s', ( time() - 5*60) ); 
+		
+		//$firs_s = 0;
+		unset($format_datetime);
+		unset($phase1_apparent_power);
+		unset($phase2_apparent_power);
+		unset($phase3_apparent_power);
+		unset($count_time);
+		
+		for($s = 0; $s < $mchk; $s++){
 			// read electrical status
 			$db = JFactory::getDbo();
 			$query = $db->getQuery(true);
 			$query->select( $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_apparent_power',  'phase2_apparent_power',  'phase3_apparent_power') ) );
 			//$query->select('*');   
 			$query->from( $db->quoteName('#__electrical') );
-			$from_datetime = date('Y-m-d H:i:s', ( time() - 5*60) ); 
 			$query->where( 
 			            $db->quoteName('location_id')." = ".$db->quote($location_id) .
-                        " AND `meter_address` = " . $db->quote($meter_address) . 					
+                        " AND `meter_address` = " . $db->quote($meter_address[$s]) . 					
 				        " AND `datetime` >= " . $db->quote($from_datetime) 
 					);
 			$query->order('datetime DESC');
@@ -257,29 +245,60 @@ switch($expression){//change value of Time_interval while change TimeFrame
 
 			sort($rows);
 
-			echo "	lastRowIndex = chartData.addRows([
-";
-			$firsttime = 0;
-			foreach ($rows as $row){
-				if (!$firsttime) { $firsttime = 1;}
-				else {echo ",
-";}
-				$phase1_apparent_power = $row['phase1_apparent_power'];
-				$phase2_apparent_power = $row['phase2_apparent_power'];
-				$phase3_apparent_power = $row['phase3_apparent_power'];
-				$datetime = new DateTime($row['datetime']);
-				$format_datetime = $datetime->format('Y,m-1,d,H,i,s'); // need to reduce month by 1 as JS month starts from 0
-				echo "[ new Date($format_datetime),$phase1_apparent_power,$phase2_apparent_power, $phase3_apparent_power  ]";
-			}// for each
-		echo "
-]);";
-?>
 
+			//$firsttime = 0;
+			$t = 0; //for get every $s loop time value of format_datetime
+			foreach ($rows as $row){
+				    $phase1_apparent_power[$s."_".$t] = $row['phase1_apparent_power'];
+				    $phase2_apparent_power[$s."_".$t] = $row['phase2_apparent_power'];
+				    $phase3_apparent_power[$s."_".$t] = $row['phase3_apparent_power'];
+					$datetime = new DateTime($row['datetime']);
+				    $format_datetime[$s."_".$t] = $datetime->format('Y,m-1,d,H,i,s'); // need to reduce month by 1 as JS month starts from 
+				
+			    $t++;	
+			}// for each
+			$count_time[$s] = $t ;
+            //var_dump($count_time);
+	    }//for(query)
+		
+	    $ArrO = 0;
+        for ($s = 0; $s < $mchk; $s++){
+			if (!$ArrO) { $ArrO = 1;}
+			else {echo ",";}
+			
+			$ArrA = 0;
+			for($t = 0; $t <$count_time[$s]; $t++){
+				if (!$ArrA) { $ArrA = 1;}
+			    else {echo ",";}
+				if(sizeof($meter_address) == 1){
+		            echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t]." ]";
+				}else{
+					echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t].", ";
+					
+					
+					$ArrB = 0;
+					for($i = 1; $i < $mchk; $i++){
+						if (!$ArrB) { $ArrB = 1;}
+			            else {echo ",";}
+						echo $phase1_apparent_power[$i."_".$t].",".$phase2_apparent_power[$i."_".$t].", ".$phase3_apparent_power[$i."_".$t];	 
+					}
+					
+					echo "]";
+				}//if
+			}//for($t)
+				
+		}//for($s)	
+		
+	echo " ]);";
+?>
+         
+		
+		 
 		// Instantiate and draw our chart, passing in some options.
 		chart = new google.visualization.LineChart(document.getElementById('chart_div'));
 		chart.draw(chartData, chartOptions);
 		redrawChart();
-		
+		'<?php  //JLog::add(JText::_(" Power-Time helper get : $meter_address)"), JLog::ERROR, 'jerror'); ?>'
 	} // drawChart()
 	
 	
@@ -288,7 +307,7 @@ switch($expression){//change value of Time_interval while change TimeFrame
 	function redrawChart() {
 
 		timeoutFxn = setTimeout(function(){	
-			chartOptions.title = 'Power against Time (Last updated time is '+'<?php "<font clolr=#blue>"; ?>' + Date.now().toString('yyyy-MM-dd HH:mm:ss') + '<?php "</font>"; ?>'+')  Meter: ['+ meter_address +']    Time interval:['+ Time_interval +']';
+			chartOptions.title = 'Power against Time (Last updated time is '+'<?php "<font clolr=#blue>"; ?>' + Date.now().toString('yyyy-MM-dd HH:mm:ss') + '<?php "</font>"; ?>'+')  Meter: '+ meter_address +'    Time interval:['+ Time_interval +']';
 			
 			changeHAxis();
 			google.visualization.events.addListener(chart, 'ready', clearLoading);
@@ -316,14 +335,14 @@ switch($expression){//change value of Time_interval while change TimeFrame
 			var data_text = obj.data; //skips over success, message, messages
 			dataToLoadObj = JSON.parse(data_text); // dataToLoadObj is a JSON object, not an array
 			dataToLoad = Object.keys(dataToLoadObj).map(  function(k) { return dataToLoadObj[k] }  ); //converts object to array of objects
-// alert('dataToLoad length in getChartDataToDataToLoad should be 1st  is ' + dataToLoad.length);
+//alert('dataToLoad length in getChartDataToDataToLoad should be 1st  is ' + dataToLoad.length);
 // alert('dataToLoad is ' + dataToLoad);
-// temp = JSON.stringify(dataToLoad, null, 4);
-// alert('dataToLoad JSON is ' + temp);
+ temp = JSON.stringify(dataToLoad, null, 4);
+ alert('dataToLoad JSON is ' + temp);
 
 		})//done 
 		.fail(function (request, status, error) {
-			alert('There are some errors. \nPlease try again later.\n' + request.responseText);
+			//alert('There are some errors. \nPlease try again later.\n' + request.responseText);
 		});
 	} // function getData
 
@@ -649,10 +668,10 @@ switch($expression){//change value of Time_interval while change TimeFrame
         
 		if(Meter.checked == true){  
 			Meter = 1;
-			alert(MeterId+"："+Meter);
+			//alert(MeterId+"："+Meter);
 		}else{
 			Meter = 0;
-			alert(MeterId+"："+Meter);
+			//alert(MeterId+"："+Meter);
 		}
 	}
 	
@@ -681,45 +700,40 @@ switch($expression){//change value of Time_interval while change TimeFrame
 	}
 	
 	
-	function change_Power_A(){
 	
-        var Phase1_Power = document.getElementById("Phase1_Power");
-        
-		if(Phase1_Power.checked == true){  
-			Phase1_Power = 1;
-			alert("Phase1_Power："+Phase1_Power);
-		}else{
-			Phase1_Power = 0;
-			alert("Phase1_Power："+Phase1_Power);
-		}
+    //---Loading chart code-----------
+    function clearLoading2() {document.getElementById('chartcurtain').style.display="none"; }
+	function clearLoading() {
+		var i = 100; 
+        function $(id) {return document.getElementById(id);} 
+        function chang_display() { 
+          i--;
+          var div = $('chartcurtain'); 
+          div.style.filter = "Alpha(Opacity="+i+")"; 
+          div.style.opacity = i / 100; 
+          if ( i== "0"){
+			document.getElementById('chartcurtain').style.display="none";//隐藏 
+            exit 
+          } 
+        } 
+        setInterval(chang_display, 10);    
 	}
-
-    function change_Power_B(){
 	
-		var Phase3_Power = document.getElementById("Phase3_Power");
-        
-		if(Phase2_Power.checked == true){  
-			Phase2_Power = 1;
-			alert("Phase2_Power："+Phase2_Power);
-		}else{
-			Phase2_Power = 0;
-			alert("Phase2_Power："+Phase2_Power);
-		}
-	}
-
-	function change_Power_C(){
-	
-		var Phase3_Power = document.getElementById("Phase3_Power");
-        
-		if(Phase3_Power.checked == true){
-			Phase3_Power = 1;
-			alert("Phase3_Power："+Phase3_Power);
-		}else{
-			Phase3_Power = 0;
-			alert("Phase3_Power："+Phase3_Power);
-		}
-	}
-		
+	function startLoading() {
+		var i = 99; 
+        function $(id) {return document.getElementById(id);} 
+        function chang_block() { 
+          i++; 
+          var div = $('chartcurtain'); 
+          div.style.filter = "Alpha(Opacity="+i+")"; 
+          div.style.opacity = i / 100; 
+          if ( i== "100"){
+			document.getElementById('chartcurtain').style.display="block";//隐藏 
+			exit
+          }
+        } 
+        setInterval(chang_block, 0);   
+	}	
 	
 // ]]></script>
 <table >
@@ -868,7 +882,7 @@ switch($expression){//change value of Time_interval while change TimeFrame
 
 </table>
 </form>
-
+<?php require(JModuleHelper::getLayoutPath('Power-Time', 'default'));?>
 
 
 

@@ -3,7 +3,9 @@
 /**
  * File       helper.php
  */
-
+jimport('joomla.log.log');
+JLog::addLogger(array());
+ 
 class modChartHelper {
 
 	public static function getChartDataAjax(){
@@ -16,14 +18,18 @@ class modChartHelper {
 		// $data interval is the interval between records
 			// n-t, n is a number, t is the term, like y,m,d,w,h,i,s. Eg. 1-s
 	
-		$table = JRequest::getVar('table', 'electrical3');
+		$table = JRequest::getVar('table', 'electrical');
 		$location_id = JRequest::getVar('location_id', '1');
 		$meter_address = JRequest::getVar('meter_address', '01' );
 		$columns_string = JRequest::getVar('columns', NULL );
 		$from_datetime_string = JRequest::getVar('from_datetime', NULL);
 		$to_datetime_string = JRequest::getVar('to_datetime', NULL);
-		$num_records = JRequest::getVar('num_records', '180');
+		$num_records = JRequest::getVar('num_records', '30');
 		$data_interval = JRequest::getVar('data_interval', '1-s');
+		
+
+
+JLog::add(JText::_(" Power-Time helper get : $meter_address)"), JLog::ERROR, 'jerror');
 
 /*
 echo "meter_address is $meter_address ---";
@@ -68,9 +74,9 @@ echo "data_interval is $data_interval ---";
 		if ($columns_string == null) {
 			if ($t == 1) {
 				$columns = array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_voltage');
-				$select_string = ' `electrical_id`, `location_id`, `meter_address`, `datetime`,  `phase1_voltage` ';
+				$select_string = ' `electrical_id`, `location_id`, `meter_address`, `datetime`, `phase1_voltage` ';
 			} else {
-				$columns = array('electrical_id', 'location_id', 'meter_address', 'MAX(`datetime`)', 'AVG(phase1_voltage)' );
+				$columns = array('electrical_id', 'location_id', 'meter_address', 'MAX(`datetime`)', 'AVG(phase1_voltage)');
 				$select_string = ' `electrical_id`, `location_id`, `meter_address`, MAX(`datetime`) AS `datetime`, AVG(`phase1_voltage`) AS phase1_voltage ';
 			} // if t = 1
 		} else {
@@ -132,58 +138,15 @@ echo "data_interval is $data_interval ---";
 		return json_encode($rows);
 	} // getChartData
 
-	
-	/*
-	public static function getDataAjax(){
-		// $table is the table to read from. can have electrical, water, etc
-		// $location_id is the location id. unique for each building
-		// $zone_id=1 is the zone id. unique in a building
-		// $from_datetime is the datetime to start the search from
-		// $to_datetime is the datetime to end the search
-		// $num_records is the number of records to retrieve
-		// $interval is the time in seconds the records should be averaged
-	
-		$table = JRequest::getVar('table', 'electrical');
-		$location_id = JRequest::getVar('location_id', '1');
-		$meter_id = JRequest::getVar('meter_id', '01');
-		$from_datetime = JRequest::getVar('from_datetime', NULL);
-		$to_datetime = JRequest::getVar('to_datetime', NULL);
-		$num_records = JRequest::getVar('num_records', '30');
-		$interval = JRequest::getVar('interval', '1');
-		
-		
-		if ($table == 'electrical') {
-			// read electrical status
-			$db = JFactory::getDbo();
-			$query = $db->getQuery(true);
-			$query->select( $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_apparent_power', 'phase1_voltage', 'phase1_current', 'phase1_frequency') ) );
-			$query->from( $db->quoteName('#__electrical') );
-			$query->where( $db->quoteName('location_id')." = ".$db->quote(1) );
-			$query->order('datetime DESC');
-	
-			$db->setQuery($query,0,$num_records);
-			$rows = $db->loadAssocList();		
-	
-			return json_encode($rows);
-		} // if
-	} // getData
+    public function MeterInfo(){
+		$db = JFactory::getDbo();
+		$query = $db->getQuery(true);
+		$query->select('*');   
+		$query->from( $db->quoteName("#__meter_info") );
+		$query->order('info_id ASC');
+		$db->setQuery($query);
+		$rows = $db->loadAssocList();
+		return $rows;	
+	}
 
-
-
-
-	public static function getTestDataAjax() {
-
-	    //Get the app
-	    //$app = JFactory::getApplication();
-    
-	    //Insert stuff to do here
-		$data = "123";
-		    
-	    //echo the data
-	    echo json_encode($data);
-
-	    //close the $app
-	    //$app->close();
-	} // getTestData
-    */
 }

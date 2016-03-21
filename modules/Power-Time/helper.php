@@ -3,7 +3,9 @@
 /**
  * File       helper.php
  */
-
+jimport('joomla.log.log');
+JLog::addLogger(array());
+ 
 class modChartHelper {
 
 	public static function getChartDataAjax(){
@@ -24,6 +26,10 @@ class modChartHelper {
 		$to_datetime_string = JRequest::getVar('to_datetime', NULL);
 		$num_records = JRequest::getVar('num_records', '30');
 		$data_interval = JRequest::getVar('data_interval', '1-s');
+		
+
+
+JLog::add(JText::_(" Power-Time helper get : $meter_address"), JLog::ERROR, 'jerror');
 
 /*
 echo "meter_address is $meter_address ---";

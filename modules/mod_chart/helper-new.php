@@ -149,7 +149,7 @@ echo "data_interval is $data_interval ---";
 
 		$db->setQuery($query,0,$num_records);
 		$rows = $db->loadAssocList();
-		
+JLog::add(JText::_(" getVar rows[0] is : $rows[0]"), JLog::ERROR, 'jerror');	
 		
 		$t = 0; //for get every $s loop time value of format_datetime
 			foreach ($rows as $row){
@@ -163,41 +163,36 @@ echo "data_interval is $data_interval ---";
     }//for(query)
 		
 	
-	
-	 
-	//unset($json_rows);
-	
 	$ArrO = 0;
         for ($s = 0; $s < $mchk; $s++){
 			if (!$ArrO) { $ArrO = 1;}
-			else {$jn = $jn.",";}
+			else {echo ",";}
 			
 			$ArrA = 0;
 			for($t = 0; $t <$count_time[$s]; $t++){
 				if (!$ArrA) { $ArrA = 1;}
-			    else {$jn = $jn.",";}
+			    else {echo ",";}
 				if(sizeof($meter_address) == 1){
-		            $jn = $jn."{ datetime:".$format_datetime[$s."_".$t].", pa:".$phase1_apparent_power[$s."_".$t].", pb:".$phase2_apparent_power[$s."_".$t].", pc:".$phase3_apparent_power[$s."_".$t]." }";
+		            $row[] =$format_datetime[$s."_".$t].",".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t]." ]";
 				}else{
-					 $jn = $jn."{ datetime:".$format_datetime[$s."_".$t].", pa:".$phase1_apparent_power[$s."_".$t].", pb:".$phase2_apparent_power[$s."_".$t].", pc:".$phase3_apparent_power[$s."_".$t].", ";
+					echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t].", ";
 					
 					
 					$ArrB = 0;
 					for($i = 1; $i < $mchk; $i++){
 						if (!$ArrB) { $ArrB = 1;}
-			            else {$jn = $jn.",";}
-						$jn = $jn." pa:".$phase1_apparent_power[$i."_".$t].", pb:".$phase2_apparent_power[$i."_".$t].", pc:".$phase3_apparent_power[$i."_".$t];	 
+			            else {echo ",";}
+						echo $phase1_apparent_power[$i."_".$t].",".$phase2_apparent_power[$i."_".$t].", ".$phase3_apparent_power[$i."_".$t];	 
 					}
-					 $jn = $jn." }";
+					
+					echo "]";
 				}//if
 			}//for($t)
-		
+				
 		}//for($s)
-			
 	
-JLog::add(JText::_(" return rows is : $jn"), JLog::ERROR, 'jerror');			
-		//return json_encode($rows);
-		return $jn;
+JLog::add(JText::_(" getVar rows is : json_encode($rows)"), JLog::ERROR, 'jerror');			
+		return json_encode($rows);
 	} // getChartData
 
 	
