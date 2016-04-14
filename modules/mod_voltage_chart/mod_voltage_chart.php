@@ -1,35 +1,101 @@
-﻿<?php
+﻿﻿<?php
+//ini_set('date.timezone','Asia/Singapore');
+date_default_timezone_set('Asia/Singapore');
 
-//jimport('joomla.log.log');
-//JLog::addLogger(array());
-
-$js = JURI::base().'modules/Power-Time/js/jsapi.js';  
+$js = JURI::base().'modules/mod_voltage_chart/js/api.js';  
 $document = JFactory::getDocument($js);  
 $document->addScript($js); 
 
-$zh_CN = JURI::base().'modules/Power-Time/js/format+zh_CN,default+zh_CN,ui+zh_CN,corechart+zh_CN.I.js';  
+$zh_CN = JURI::base().'modules/mod_voltage_chart/js/format+zh_CN,default+zh_CN,ui+zh_CN,corechart+zh_CN.I.js';  
 $document2 = JFactory::getDocument($zh_CN);  
 $document2->addScript($zh_CN); 
 
-$corechart = JURI::base().'modules/Power-Time/js/corechart.js';  
+$corechart = JURI::base().'modules/mod_voltage_chart/js/corechart.js';  
 $document3 = JFactory::getDocument($corechart);  
 $document3->addScript($corechart);
 
-$date = JURI::base().'modules/Power-Time/js/date.js';  
+
+
+$date = JURI::base().'modules/mod_voltage_chart/js/date.js';  
 $document4 = JFactory::getDocument($date);  
 $document4->addScript($date); 
 
-$jq = JURI::base().'modules/Power-Time/js/jquery-1.9.1.js';  
+$jq = JURI::base().'modules/mod_voltage_chart/js/jquery-1.9.1.js';  
 $document5 = JFactory::getDocument($jq);  
 $document5->addScript($jq);
 
-date_default_timezone_set('ASIA/Singapore');
 
-
+$from_datetime = "-1";
+$to_datetime = "-1";
 
 $location_id = trim(JRequest::getVar('location_id', '1')); 
-$expression = trim(JRequest::getVar('expression', '1-i new')); 
+$expression = trim(JRequest::getVar('time_frame', '1-i new')); 
 $live_data = trim(JRequest::getVar('live_data', '1')); 
+$from_datetime = trim(JRequest::getVar('from_datetime', '-1')); 
+$to_datetime = trim(JRequest::getVar('to_datetime', '-1')); 
+
+if($to_datetime=="-1"){
+	$to_datetime =  date('Y-m-d H:i:s', (time() + 8*60*60));
+}
+
+ 
+  
+    switch($expression){
+		case "5-y new":
+			    $Time_interval = '5 years';
+				if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 5*365*24*60*60 + 8*60*60) );
+				}
+				break;
+			case '2-y new':
+			    $Time_interval = '2 years';
+				if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 2*365*24*60*60 + 8*60*60) );
+				}	
+				break;
+			case '1-y new':
+			    $Time_interval = 'Year';
+				if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 365*24*60*60 + 8*60*60) );
+				}
+				break;
+			case '1-q new':
+			    $Time_interval = 'Quarter';
+				if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 3*30*7*24*60*60 + 8*60*60) );
+				}
+				break;
+            case "1-m new":
+			    $Time_interval = 'Month';
+				$from_datetime = date('Y-m-d H:i:s', ( time() - 30*24*60*60 + 8*60*60) );
+				break;
+            case "1-w new":
+			    $Time_interval = 'Week';
+				if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 7*24*60*60 + 8*60*60) ); 
+				}
+				break;
+			case '1-d new':
+			   $Time_interval = 'Day';
+			   if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 24*60*60 + 8*60*60) ); 
+			   }
+				break;
+            case "1-h new":
+			    $Time_interval = 'Hour';
+				if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 60*60 + 8*60*60) );
+				}
+				break;
+            case "1-i new":
+			    $Time_interval = 'Minute';
+				if($from_datetime=="-1"){
+				    $from_datetime = date('Y-m-d H:i:s', ( time() - 10*60 + 8*60*60) ); 
+				}
+				break;
+            default:
+                break;	 
+	}
 
     $db = JFactory::getDbo();
 	$query = $db->getQuery(true);
@@ -47,7 +113,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	unset($Meter);
 	unset($MeterName);
 	unset($MeterValue);
-	unset($meter_address);
+	unset($meter_address_db);
     foreach($Inforows AS $InfoVaule){
 		$Meter[$met] = $InfoVaule['meter_address'];	
 		$MeterName[$met] = "Meter".$InfoVaule['meter_address'];
@@ -57,12 +123,12 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 		
 		if($MeterValue[$met] == "1"){
 			
-		    $meter_address[$mchk] = $InfoVaule['meter_address'];
+		    $meter_address_db[$mchk] = $InfoVaule['meter_address'];
 			
 			if($M_address == ""){
-				$M_address = $meter_address[$mchk];
+				$M_address = $meter_address_db[$mchk];
 			}else{
-				$M_address = $M_address."-".$meter_address[$mchk];
+				$M_address = $M_address."-".$meter_address_db[$mchk];
 			}
 			
 			$mchk++;
@@ -71,59 +137,87 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
     $met++;
     }
 	
-	
+	//$meterValue = json_encode($MeterValue);
+	//echo "<br>meterValue : $meterValue";
 
 	//echo "<br>$count_Mvalue"; 
 	if($count_Mvalue == 0){ //while all meter none cheched
-		$meter_address[0] = $Meter[0];
+		$meter_address_db[0] = $Meter[0];
 		$M_address = $Meter[0];
+		$MeterValue[0] = 1;
 		$mchk++;
 	}
+
+	//$meterValue = json_encode($MeterValue);
+	//echo "<br>meterValue2 : $meterValue";
 	
-	/*
-	echo "<br>";
-	var_dump($meter_address);
-	echo "<br>mchk: $mchk";
-	echo "<br>met: $met";
-	echo "<br>M_address: $M_address";
-	*/
-
-        switch($expression){//change value of Time_interval while change TimeFrame
-			case '5-y new':
-			    $Time_interval = '5 years';
-				break;
-			case '2-y new':
-			    $Time_interval = '2 years';
-				break;
-			case '1-y new':
-			    $Time_interval = 'Year';
-				break;
-			case '1-q new':
-			    $Time_interval = 'Quarter';
-				break;
-            case '1-m new':
-			    $Time_interval = 'Month';
-				break;
-            case '1-w new':
-			    $Time_interval = 'Week';
-				break;
-			case '1-d new':
-			   $Time_interval = 'Day';
-				break;
-            case '1-h new':
-			    $Time_interval = 'Hour';
-				break;
-            case '1-i new':
-			    $Time_interval = 'Minute';
-				break;
-            default:
-                break;			
-		}
-
+	
+	//Check max records which meter -----
+	unset($meter_address);
+	$real_mchk = 0;
+	$M_address2 = "";
+	for($s = 0; $s < $mchk; $s++){	
+		$db = JFactory::getDbo();
+		$query = $db->getQuery(true);
+		$query->select(  $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime') )  );
+          
+		$query->from( $db->quoteName("#__electrical") );		
+		$query->where(
+		              $db->quoteName('location_id')." = ".$db->quote($location_id) . 
+					  " AND `meter_address` = " . $db->quote($meter_address_db[$s]) . 
+				      " AND `datetime` >= " . $db->quote($from_datetime) . 
+					  " AND `datetime` <= " . $db->quote($to_datetime)  
+				);
+		
+		$query->order('datetime DESC');
+		$db->setQuery($query);
+		$db->execute();
+		$num_rows = $db->getNumRows();
+		
+		//echo "<br>from_datetime: $from_datetime";
+		//echo "<br>to_datetime: $to_datetime";
+		//echo "<br>location : $location_id";
+		//echo "<br>$s : $num_rows";
+	     
+		    if($num_rows > 5 ){
+			    $meter_address[$real_mchk] = $meter_address_db[$s];
+           	    $real_mchk++;			
+		    }
+	
+	}//for
+	
+	
+	if($count_Mvalue==0){
+		$MeterValue[0] = "1";
+	}
+	
+	for($x = 0; $x < $real_mchk; $x++){
+		if($M_address2 == ""){
+		    $M_address2 = $meter_address[$x];
+	    }else{
+		    $M_address2 = $M_address2."-".$meter_address[$x];
+	    }
+	}//for($x)
+		
+	
+	if($M_address2 == ""){
+        if(($M_address2 == "")&&($count_Mvalue > 0)){ //while all meter none cheched or recoders less then 10
+	        echo "<script>alert('All Meters which selected, not enough records to draw chart! Change to show the first Meter Now!');</script>";   
+	    }
+		
+	    $M_address2 = $meter_address_db[0];
+	    $real_mchk++;
+    }
+ 
+	//echo "<br>M_address : $M_address";
+	//echo "<br>M_address2 : $M_address2";
 ?>
+  
 <!--script src="https://www.google.com/jsapi" type="text/javascript"></script-->   
 <script type="text/javascript">// <![CDATA[
-
+    
+	startLoading();
+	
 	chart = null; // global variable
 	chartData = null; // global variable
 	chartOptions = null; // global variable
@@ -131,19 +225,20 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	chartCol = []; //global variable
 	chartCol[0] = {'db_col_name': 'datetime', 'chart_data_type' : 'datetime', 'chart_label' : 'Date Time' };
 	
-	chartCol[1] = {'db_col_name': 'phase1_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'Phase 1 Apparent Power'};
-	chartCol[2] = {'db_col_name': 'phase2_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'Phase 2 Apparent Power'};
-	chartCol[3] = {'db_col_name': 'phase3_apparent_power', 'chart_data_type' : 'number', 'chart_label' : 'Phase 3 Apparent Power'};
+	chartCol[1] = {'db_col_name': 'phase1_voltage', 'chart_data_type' : 'number', 'chart_label' : 'Phase 1 Voltage'};
+	chartCol[2] = {'db_col_name': 'phase2_voltage', 'chart_data_type' : 'number', 'chart_label' : 'Phase 2 Voltage'};
+	chartCol[3] = {'db_col_name': 'phase3_voltage', 'chart_data_type' : 'number', 'chart_label' : 'Phase 3 Voltage'};
 	
-	var mchk = '<?php echo $mchk;?>';
+	var mchk = '<?php echo $real_mchk;?>';
 	
 	jsonCol = []; //global variable
 	jsonCol[0] = {'db_col_name': 'datetime', 'chart_data_type' : 'datetime', 'chart_label' : 'Date Time' };
 	var j = 1;	
 	for( var m = 0; m < mchk; m++){
-		var Mname = '<?php echo $M_address;?>'
+		var Mname = '<?php echo $M_address2;?>'
         var Ms = new Array(); 
             Ms = Mname.split("-");
+			
 
 			jsonCol[j] =  {'db_col_name':'Meter'+Ms[m]+'_phase1','chart_data_type' : 'number', 'chart_label':'Meter'+Ms[m]+'_phase1'};
 			j++;
@@ -169,14 +264,15 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 		j_dbColumns = j_dbColumns + jsonCol[jk]['db_col_name'];
 	} // for jk
 	
-	
 	datetimeColumnIndex = 0; // global variable
-	vChartAxisMinValue = 0; // global
-	vChartAxisMaxValue = 0.2; // global
+	vChartAxisMinValue = 240; // global
+	vChartAxisMaxValue = 241; // global
 	
 	
+	var bootTime = 0;
 	var location_id = '<?php echo $location_id;?>';
-	var meter_address = '<?php echo $M_address;?>';
+	var meter_select = '<?php echo $M_address;?>'
+	var meter_address = '<?php echo $M_address2;?>';
 	var expression = '<?php echo $expression;?>';
 	var Time_interval = '<?php echo $Time_interval;?>';
 	//alert(meter_address);
@@ -187,7 +283,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
    
 	dbTable = 'electrical'; // global variable
 	lastRowIndex = 0; // global
-	timeRefresh = 3000; // global, refreshes every 15 s
+	timeRefresh = 5000; // global, refreshes every 15 s
 	refreshPeriod = '1-i'; // global, the case to call in changeHAxis
 	removeTime = 180000; // global, time in seconds before current time to remove the data
 
@@ -209,7 +305,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
         
 		//var m = 0;
 	    for( var m = 0; m < mchk; m++){
-			 var Mname = '<?php echo $M_address;?>'
+			 var Mname = '<?php echo $M_address2;?>'
              var Ms= new Array(); 
                  Ms=Mname.split("-"); 
 		    chartData.addColumn('number', 'Meter'+ Ms[m] +'_phase1');
@@ -218,15 +314,15 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	    }
 
 		// Set chart options
-		chartOptions = {'title':'Power against Time (Last updated time is ' + Date.now().toString('yyyy-MM-dd HH:mm:ss')+ ')  Meter: '+ meter_address +'    Time interval:['+ Time_interval +']',
-			'vAxis':{'title':'Power (W)', 'minValue':vChartAxisMinValue, 'maxValue':vChartAxisMaxValue},
-			'hAxis':{'title':'Time', 'minValue': (15).minutes().ago(), 'maxValue':Date.now()},
-			'width':700,
+		chartOptions = {'title':'Voltage against Time (Last updated time is ' + Date.now().toString('yyyy-MM-dd HH:mm:ss')+ ')  Meter Selected: [ '+ meter_select +' ]',
+			'vAxis':{'title':'Voltage (V)', 'minValue':vChartAxisMinValue, 'maxValue':vChartAxisMaxValue},
+			'hAxis':{'title':'Time', 'minValue': (10).minutes().ago(), 'maxValue':Date.now()},
+			'width':800,
 			'height':300};
 
 		var table = dbTable;
 		var columns = dbColumns;
-		var from_datetime_string = (15).minutes().ago().toString('yyyy-MM-dd HH:mm:ss');
+		var from_datetime_string = (10).minutes().ago().toString('yyyy-MM-dd HH:mm:ss');
 		var to_datetime_string = Date.now().toString('yyyy-MM-dd HH:mm:ss');
 		var num_records = 180;
 		var data_interval = '1-i';
@@ -235,23 +331,23 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 		// setTimeout( loadDataToChart('new'), 3000);
 		
  
-<?php
+<?php /*
 	echo "lastRowIndex = chartData.addRows([ ";
 	
-		$from_datetime = date('Y-m-d H:i:s', ( time() - 15*60) ); 
+		$from_datetime = date('Y-m-d H:i:s', ( time() - 5*60) ); 
 		
 		//$firs_s = 0;
 		unset($format_datetime);
-		unset($phase1_apparent_power);
-		unset($phase2_apparent_power);
-		unset($phase3_apparent_power);
+		unset($phase1_voltage);
+		unset($phase2_voltage);
+		unset($phase3_voltage);
 		unset($count_time);
 		
 		for($s = 0; $s < $mchk; $s++){
 			// read electrical status
 			$db = JFactory::getDbo();
 			$query = $db->getQuery(true);
-			$query->select( $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_apparent_power',  'phase2_apparent_power',  'phase3_apparent_power') ) );
+			$query->select( $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_voltage',  'phase2_voltage',  'phase3_voltage') ) );
 			//$query->select('*');   
 			$query->from( $db->quoteName('#__electrical') );
 			$query->where( 
@@ -259,7 +355,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
                         " AND `meter_address` = " . $db->quote($meter_address[$s]) . 					
 				        " AND `datetime` >= " . $db->quote($from_datetime) 
 					);
-			$query->order('datetime ASC');
+			$query->order('datetime DESC');
 			$db->setQuery($query,0,180);
 			$rows = $db->loadAssocList();
 
@@ -269,9 +365,9 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 			//$firsttime = 0;
 			$t = 0; //for get every $s loop time value of format_datetime
 			foreach ($rows as $row){
-				    $phase1_apparent_power[$s."_".$t] = $row['phase1_apparent_power'];
-				    $phase2_apparent_power[$s."_".$t] = $row['phase2_apparent_power'];
-				    $phase3_apparent_power[$s."_".$t] = $row['phase3_apparent_power'];
+				    $phase1_voltage[$s."_".$t] = $row['phase1_voltage'];
+				    $phase2_voltage[$s."_".$t] = $row['phase2_voltage'];
+				    $phase3_voltage[$s."_".$t] = $row['phase3_voltage'];
 					$datetime = new DateTime($row['datetime']);
 				    $format_datetime[$s."_".$t] = $datetime->format('Y,m-1,d,H,i,s'); // need to reduce month by 1 as JS month starts from 
 				
@@ -291,16 +387,16 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				if (!$ArrA) { $ArrA = 1;}
 			    else {echo ",";}
 				if(sizeof($meter_address) == 1){
-		            echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t]." ]";
+		            echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_voltage[$s."_".$t].",".$phase2_voltage[$s."_".$t].", ".$phase3_voltage[$s."_".$t]." ]";
 				}else{
-					echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_apparent_power[$s."_".$t].",".$phase2_apparent_power[$s."_".$t].", ".$phase3_apparent_power[$s."_".$t].", ";
+					echo "[ new Date(".$format_datetime[$s."_".$t]."),".$phase1_voltage[$s."_".$t].",".$phase2_voltage[$s."_".$t].", ".$phase3_voltage[$s."_".$t].", ";
 					
 					
 					$ArrB = 0;
 					for($i = 1; $i < $mchk; $i++){
 						if (!$ArrB) { $ArrB = 1;}
 			            else {echo ",";}
-						echo $phase1_apparent_power[$i."_".$t].",".$phase2_apparent_power[$i."_".$t].", ".$phase3_apparent_power[$i."_".$t];	 
+						echo $phase1_voltage[$i."_".$t].",".$phase2_voltage[$i."_".$t].", ".$phase3_voltage[$i."_".$t];	 
 					}
 					
 					echo "]";
@@ -310,13 +406,13 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 		}//for($s)	
 		
 	echo " ]);";
+	*/
 ?>
          
 		// Instantiate and draw our chart, passing in some options.
 		chart = new google.visualization.LineChart(document.getElementById('chart_div'));
 		chart.draw(chartData, chartOptions);
-		changeHAxis(refreshPeriod + ' new');
-		//redrawChart();
+		redrawChart();
 		
 	} // drawChart()
 	
@@ -324,15 +420,17 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	
 
 	function redrawChart() {
+//alert('in redrawchart()');
 		timeoutFxn = setTimeout(function(){	
-			chartOptions.title = 'Power against Time (Last updated time is '+ Date.now().toString('yyyy-MM-dd HH:mm:ss') +')  Meter: '+ meter_address +'    Time interval:['+ Time_interval +']';
-			//changeHAxis();
+			chartOptions.title = 'Power against Time (Last updated time is '+ Date.now().toString('yyyy-MM-dd HH:mm:ss') +')  Meter Selected: [ '+ meter_select +' ]';
+			
 			google.visualization.events.addListener(chart, 'ready', clearLoading);
 			if(live_data == 0){
-			    control_redraw++;
+			  control_redraw++;
 			}
 			if(control_redraw <= 1){
-				changeHAxis(refreshPeriod + ' add');	
+			 changeHAxis(expression);
+			 redrawChart();	
 		    }			
 		}, timeRefresh);
 	}
@@ -359,16 +457,16 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 
 		})//done 
 		.fail(function (request, status, error) {
-			alert('There are some errors. \nPlease try again later.\n' + JSON.stringify(request.responseText));
+			//alert('There are some errors. \nPlease try again later.\n' + JSON.stringify(request.responseText));
 		});
 	} // function getData
 
 	
-	function loadDataToChart(expression_type)  {
+	function loadDataToChart(type)  {
 		var j, number_of_rows, row, chart_datetime, number_of_columns, column_name, length, value, temp_value, rowObj;
 		var lastDatetime, temp_datetime, firstDatetime;
 
-		if (expression_type == 'new') {
+		if (type == 'new') {
 			// clear all the rows
 			number_of_rows = chartData.getNumberOfRows();
 			chartData.removeRows(0, number_of_rows);
@@ -405,10 +503,9 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 			} // for k
 			
 
-			if (expression_type == 'new') {
+			if (type == 'new') {
 				lastRowIndex = chartData.addRow(temp_row);
-			} else if (expression_type == 'add') {
-//alert('in aldd');				
+			} else if (type == 'add') {
 				// type is add, need to compare the date of the last row with the new record before adding
 				lastDatetime = chartData.getValue(lastRowIndex, datetimeColumnIndex); 
 				if (lastDatetime.getTime() < temp_datetime.getTime()) {
@@ -433,6 +530,10 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 
 
 	function changeHAxis(expression)  {
+///alert('in changeHAxis()');
+//alert('expression:' + expression);
+//alert('location_id:' + location_id);	
+//alert('meter_address:' + meter_address);		
 		var table = dbTable;
 		var columns = dbColumns;
 		var from_datetime, to_datetime, num_records, data_interval;
@@ -454,8 +555,8 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 60;
 				data_interval = '1-m'; // 1 month
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000; // 2 hours
+				if ((timeRefresh != 7200000)&&(bootTime != 0)) {
+					timeRefresh = 7200000; // 2 hours
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
@@ -465,6 +566,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
 				break;
@@ -478,8 +580,8 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 104;
 				data_interval = '1-w'; // 1 week
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000; // 2 hours
+				if ((timeRefresh != 7200000)&&(bootTime != 0)) {
+					timeRefresh = 7200000; // 2 hours
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
@@ -489,6 +591,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
 				break;
@@ -502,9 +605,9 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 52;
 				data_interval = '7-d'; // 1 week
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000; // 2 hours
-					learTimeout(timeoutFxn);
+				if ((timeRefresh != 7200000)&&(bootTime != 0)) {
+					timeRefresh = 7200000; // 2 hours
+					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
 
@@ -513,6 +616,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
 				break;
@@ -526,8 +630,8 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 90;
 				data_interval = '1-d'; // 1 day
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000; // 2 hours
+				if ((timeRefresh != 7200000)&&(bootTime != 0)) {
+					timeRefresh = 7200000; // 2 hours
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
@@ -537,6 +641,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
 				break;
@@ -550,8 +655,8 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 60;
 				data_interval = '12-h'; // 12 hours
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000; // 2 hours
+				if ((timeRefresh != 7200000)&&(bootTime != 0)) {
+					timeRefresh = 7200000; // 2 hours
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
@@ -561,6 +666,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
 				break;
@@ -574,8 +680,8 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 84;
 				data_interval = '2-h'; // 2 hours
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000; // 2 hours
+				if ((timeRefresh != 7200000)&&(bootTime != 0)) {
+					timeRefresh = 7200000; // 2 hours
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
@@ -585,6 +691,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
 				break;
@@ -598,19 +705,21 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 48;
 				data_interval = '30-i'; // 30 mins
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000;
+				if ((timeRefresh != 1800000)&&(bootTime != 0)) {
+					timeRefresh = 1800000; // 30 mins
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
-
+                
 				getChartDataToDataToLoad(table, location_id, meter_address, columns, from_datetime_string, to_datetime_string, num_records, data_interval);
 				setTimeout(function() {
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
+				
 				break;
 			case '1-h':
 				refreshPeriod = '1-h'; // used in redrawChart()
@@ -622,8 +731,8 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 60;
 				data_interval = '1-i'; // 1 min
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000;
+				if ((timeRefresh != 60000)&&(bootTime != 0)) {
+					timeRefresh = 60000; // 1 min
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
@@ -631,23 +740,24 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 				getChartDataToDataToLoad(table, location_id, meter_address, columns, from_datetime_string, to_datetime_string, num_records, data_interval);
 				setTimeout(function() {
 					loadDataToChart(expression_type);
-					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};					
+					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);
+					bootTime = 1;
 					redrawChart();
 				},timeRefresh);
 				break;
 			case '1-i':
 				refreshPeriod = '1-i'; // used in redrawChart()
-				removeTime = 1*60*1000; // time is seconds from current time to remove old data
+				removeTime = 3*60*1000; // time is seconds from current time to remove old data
 				// getChartData(table, location_id, meter_address, columns, from_date, to_date, num_records, data_interval  )
-				from_datetime = (15).minutes().ago();
+				from_datetime = (10).minutes().ago();
 				to_datetime = Date.now();
 				from_datetime_string = from_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				to_datetime_string = to_datetime.toString('yyyy-MM-dd HH:mm:ss');
 				num_records = 180;
 				data_interval = '1-s';
-				if (timeRefresh != 3000) {
-					timeRefresh = 3000;
+				if (timeRefresh != 5000) {
+					timeRefresh = 5000;
 					clearTimeout(timeoutFxn);
 					redrawChart();
 				}
@@ -657,7 +767,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 					loadDataToChart(expression_type);
 					chartOptions.hAxis = {'title':'Time', 'minValue': from_datetime, 'maxValue':to_datetime};
 					chart.draw(chartData,chartOptions);	
-				    redrawChart();
+				    bootTime = 1;
 				},timeRefresh);
 				
 				break;
@@ -668,7 +778,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 
 	function changeLocation(LocationId){
         location_id = LocationId ;
-		//location.href="index.php/Power-time?location_id="+location_id+"&meter_address="+meter_address+"&expression="+expression+"&live_data="+live_data;
+		//location.href="index.php/Voltage-Chart?location_id="+location_id+"&meter_address="+meter_address+"&expression="+expression+"&live_data="+live_data;
 	}
 	
 
@@ -685,10 +795,10 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	
 	
 	function changeTime(TimeKey){
-        expression = TimeKey ;
-		control_redraw = 0;
-		startLoading();
-		changeHAxis(expression);
+        //expression = TimeKey ;
+		//control_redraw = 0;
+		//startLoading();
+		//redrawChart();
 	}
 	
 	function changeLive(){
@@ -744,7 +854,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 // ]]></script>
 <table >
 <tr>
-<td width=500px>
+<td width=600px>
 <div style="width: 400px; height: 300px; position: relative;">
 <div id="chartcurtain"
      style="width: 400px;
@@ -758,7 +868,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
           font-size: 20px;
           filter:Alpha(Opacity=0); 
 ">
-<font color=#5e5e5e >Loading chart ......</font>
+<font color=#5e5e5e >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Loading chart ......</font>
 </div>
 
 
@@ -768,13 +878,13 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 </tr>
 </table>
 
-<form name=chart_form action="index.php/Power-Time" method="POST">
+<form name=chart_form action="Voltage-Chart" method="POST">
 <table >
 <tr>
 <td width=500px>
     
 	
-    <select id='location_frame' name='location_id' class="input-small" onChange="javascript:changeLocation(this.value);">
+    <select id='location_frame' name='location_id' onChange="javascript:changeLocation(this.value);">
 	    <option value="<?php echo $location_id; ?>" selected>Locat <?php echo $location_id; ?></option>
 <?php 
 	    $db = JFactory::getDbo();
@@ -832,7 +942,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
   ?>	
 	</select--> 
 	
-	<select  name='time_frame' class="input-small" onChange="javascript:changeTime(this.value);">
+	<select  name='time_frame'  onChange="javascript:changeTime(this.value);">
 	<option value="<?php echo $expression; ?>" selected><?php echo $Time_interval; ?></option>
 		<option value="5-y new">5 years</option>
 		<option value="2-y new">2 years</option>
@@ -847,6 +957,9 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	
     <input type=radio id="live_data" name=live_data value='1' checked  onclick='changeLive()'>Live</input>
 	<input type=radio id="history_data" name=live_data value='0'  onclick='changeLive()'>Historical</input>
+	&nbsp;&nbsp;&nbsp;&nbsp;
+	FromDateTime:<input id="from_datetime" name="from_datetime" type="text"  value="" />
+	ToDateTime:  <input id="to_datetime" name="to_datetime" type="text"  value="" />
 
 </td>
 </tr>
@@ -874,21 +987,17 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
  
 <!--tr align="left" onmouseover="this.style.backgroundColor='#e5ff00'" onmouseout="this.style.backgroundColor='#ffffff'">
             <td style="padding-left:2px;">
-			<input name="Phase1_Power" id="Phase1_Power" type="checkbox"  value="1"  checked ="checked" onclick="javascript:change_Power_A();" />&nbsp;Phase1_Power&nbsp;&nbsp;
-			<input name="Phase2_Power" id="Phase2_Power" type="checkbox"  value="1"  checked ="checked" onclick="javascript:change_Power_B();"/>&nbsp;Phase2_Power&nbsp;&nbsp;
-			<input name="Phase3_Power" id="Phase3_Power" type="checkbox"  value="1"  checked ="checked" onclick="javascript:change_Power_C();"/>&nbsp;Phase3_Power&nbsp;&nbsp;
+			<input name="Phase1_Voltage" id="Phase1_Voltage" type="checkbox"  value="1"  checked ="checked" onclick="javascript:change_Voltage_A();" />&nbsp;Phase1_Voltage&nbsp;&nbsp;
+			<input name="Phase2_Voltage" id="Phase2_Voltage" type="checkbox"  value="1"  checked ="checked" onclick="javascript:change_Voltage_B();"/>&nbsp;Phase2_Voltage&nbsp;&nbsp;
+			<input name="Phase3_Voltage" id="Phase3_Voltage" type="checkbox"  value="1"  checked ="checked" onclick="javascript:change_Voltage_C();"/>&nbsp;Phase3_Voltage&nbsp;&nbsp;
 			</td>
 						
  </tr-->
 <tr align="left" >
 <td>
- <br><br><input type="submit" value=" 提  交 "  id="send-btn" /><br><br>
+<br><input type="submit" value=" Submit "  id="send-btn" /><br><br>
 </td>
 </tr>
 
 </table>
 </form>
-<?php //require(JModuleHelper::getLayoutPath('Power-Time', 'default'));?>
-
-
-

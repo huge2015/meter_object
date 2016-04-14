@@ -20,7 +20,7 @@ class JConfig {
 	public $live_site = '';
 	public $secret = 'JvW0uRHOrjf4fjst';
 	public $gzip = '0';
-	public $error_reporting = 'default';
+	public $error_reporting = 'simple';
 	public $helpurl = 'http://help.joomla.org/proxy/index.php?option=com_help&keyref=Help{major}{minor}:{keyref}';
 	public $ftp_host = '';
 	public $ftp_port = '';
@@ -29,13 +29,13 @@ class JConfig {
 	public $ftp_root = '';
 	public $ftp_enable = '0';
 	public $offset = 'Asia/Singapore';
-	public $mailonline = '1';
-	public $mailer = 'mail';
+	public $mailonline = '0';
+	public $mailer = 'sendmail';
 	public $mailfrom = 'nhtang111@163.com';
 	public $fromname = 'joomla';
 	public $sendmail = '/usr/sbin/sendmail';
 	public $smtpauth = '0';
-	public $smtpuser = '';
+	public $smtpuser = 'admin';
 	public $smtppass = 'huge';
 	public $smtphost = 'localhost';
 	public $smtpsecure = 'none';
@@ -46,7 +46,7 @@ class JConfig {
 	public $MetaDesc = 'joomla';
 	public $MetaKeys = '';
 	public $MetaTitle = '1';
-	public $MetaAuthor = '1';
+	public $MetaAuthor = '0';
 	public $MetaVersion = '0';
 	public $robots = '';
 	public $sef = '1';

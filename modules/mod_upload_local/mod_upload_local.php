@@ -19,6 +19,11 @@ $location_id = trim(JRequest::getVar('location_id', '1'));
 $expression = trim(JRequest::getVar('expression', '1-i new')); 
 $live_data = trim(JRequest::getVar('live_data', '1')); 
 
+   
+	
+
+
+
     $db = JFactory::getDbo();
 	$query = $db->getQuery(true);
 	$query->select( $db->quoteName(array('info_id', 'location_id', 'meter_address') ) ); 
@@ -31,17 +36,28 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	$met = 0;
 	$mchk = 0;
 	$count_Mvalue = 0; //for check Array meter_address is empty
+	$M_address = "";  //Format Array [meter_address] ,for upload meter_address by ajax data style, while element jump the next one follow "," 
 	unset($Meter);
+	unset($MeterName);
 	unset($MeterValue);
 	unset($meter_address);
     foreach($Inforows AS $InfoVaule){
-		$Meter[$met] = "Meter".$InfoVaule['meter_address'];	
-        $MeterValue[$met] = trim(JRequest::getVar("$Meter[$met]", '-1'));
-	    //echo "<br>$Meter[$met] : $MeterValue[$met]";
+		$Meter[$met] = $InfoVaule['meter_address'];	
+		$MeterName[$met] = "Meter".$InfoVaule['meter_address'];
+        $MeterValue[$met] = trim(JRequest::getVar("$MeterName[$met]", '-1'));
+	    //echo "<br>$MeterName[$met] : $MeterValue[$met]";
 		$count_Mvalue = $count_Mvalue + $MeterValue[$met] + 1;  //if $count_Mvalue = 0 Array meter_address is empty
 		
 		if($MeterValue[$met] == "1"){
+			
 		    $meter_address[$mchk] = $InfoVaule['meter_address'];
+			
+			if($M_address == ""){
+				$M_address = $meter_address[$mchk];
+			}else{
+				$M_address = $M_address."-".$meter_address[$mchk];
+			}
+			
 			$mchk++;
 		}
 		
@@ -52,7 +68,8 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 
 	//echo "<br>$count_Mvalue"; 
 	if($count_Mvalue == 0){ //while all meter none cheched
-		$meter_address[$mchk] = '01';
+		$meter_address[0] = $Meter[0];
+		$M_address = $Meter[0];
 		$mchk++;
 	}
 	
@@ -70,75 +87,102 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 	$to_datetime = date('Y-m-d H:i:s');	
 	
 	unset($format_datetime);
-	unset($phase1_apparent_power);
-	unset($phase2_apparent_power);
-	unset($phase3_apparent_power);
+	unset($phase1);
+	unset($phase2);
+	unset($phase3);
 	unset($count_time);
-	
+
 	for($s = 0; $s < $mchk; $s++){	
 		$db = JFactory::getDbo();
 		$query = $db->getQuery(true);
 //		$query->select( $db->quoteName($columns) );
-		$query->select( $db->quoteName(array('electrical_id', 'location_id', 'meter_address', 'datetime', 'phase1_apparent_power',  'phase2_apparent_power',  'phase3_apparent_power')) );
-
+		$query->select( $select_string );
+          
 		$query->from( $db->quoteName("#__electrical") );		
 		$query->where(
 		              $db->quoteName('location_id')." = ".$db->quote($location_id) . 
-					  " AND `meter_address` >= " . $db->quote($meter_address[$s]) . 
+					  " AND `meter_address` = " . $db->quote($meter_address[$s]) . 
 				      " AND `datetime` >= " . $db->quote($from_datetime) . 
 					  " AND `datetime` <= " . $db->quote($to_datetime)  
 				);
 		//if ($t > 1) { // more than 1 s data interval, need to group and average
-			//$query->group( "(TIME_TO_SEC(datetime) - (TIME_TO_SEC (datetime) % ($t) ) )" );		
+			$query->group( "(TIME_TO_SEC(datetime) - (TIME_TO_SEC (datetime)  ) )" );		
 		//}
 		$query->order('datetime ASC');
-	
 //  echo("query is " . $query->__toString() . '---');
-
-		$db->setQuery($query,0,$num_records);
-		$rows = $db->loadAssocList();
+		$db->setQuery($query);
+		$db->execute();
+		$num_rows = $db->getNumRows();
+        $rows = $db->loadAssocList();
 		
-			
 		
-		$t = 0; //for get every $s loop time value of format_datetime
-			foreach ($rows as $row){
-				    $phase1_apparent_power[$s."_".$t] = $row['phase1_apparent_power'];
-				    $phase2_apparent_power[$s."_".$t] = $row['phase2_apparent_power'];
-				    $phase3_apparent_power[$s."_".$t] = $row['phase3_apparent_power'];
-					$format_datetime[$s."_".$t] = $row['datetime'];
-			    $t++;	
-			}// for each
-			$count_time[$s] = $t ;
+		$m = 0; //for get every $s loop time value of format_datetime
+		if($num_rows == "0"){}else{
+		foreach ($rows as $row){
+			//for($cols = 1; $cols < sizeof($columns); $col++){
+				//$phase1[$s."_".$m] = $row["$columns[1]"];
+			//}
+			$phase1[$s."_".$m] = $row['phase1_apparent_power'];
+			$phase2[$s."_".$m] = $row['phase2_apparent_power'];
+			$phase3[$s."_".$m] = $row['phase3_apparent_power'];
+			$format_datetime[$s."_".$m] = $row['datetime'];
+					
+			$m++;	
+		}// for each
+		}	
+		$count_time[$s] = $m ;
     }//for(query)
 		
 	
-	
-	 
-	 unset($jrows);
-	
+	    for($s = 0; $s < $mchk; $s++){
+			if($s == 0){
+				$count_max = $count_time[$s];
+				$MaxMeterId = $s;
+			}else{
+				if($count_max < $count_time[$s]){
+				    $count_max = $count_time[$s];
+					$MaxMeterId = $s;
+			    }
+			}	
+		}//for
+		
+
+
+	unset($jrows); 
+	     
+        //get max recoders datetime
+		for($m = 0; $m < $count_max; $m++){
+		    $jrows[$m]['datetime'] = $format_datetime[$MaxMeterId.'_'.$m];
+		}//for($m)
+		
+//$jtime = json_encode($jrows);
+//JLog::add(JText::_("jtime datetime is : ".$jtime), JLog::ERROR, 'jerror');	 
+
         for ($s = 0; $s < $mchk; $s++){
 			
-			for($t = 0; $t <$count_time[$s]; $t++){
+			for($m = 0; $m < $count_max; $m++){
 				if(sizeof($meter_address) == 1){
-		            $jrows[$t]['datetime'] = $format_datetime[$s.'_'.$t];
-					$jrows[$t]['M'.$meter_address[$s].'Pa'] = $phase1_apparent_power[$s."_".$t];
-					$jrows[$t]['M'.$meter_address[$s].'Pb'] = $phase2_apparent_power[$s."_".$t];
-					$jrows[$t]['M'.$meter_address[$s].'Pc'] = $phase3_apparent_power[$s."_".$t];
+		            $jrows[$m]['datetime'] = $format_datetime[$MaxMeterId.'_'.$m];
+					$jrows[$m]['Meter'.$meter_address[$s].'_phase1'] = $phase1[$s.'_'.$m];
+					$jrows[$m]['Meter'.$meter_address[$s].'_phase2'] = $phase2[$s.'_'.$m];
+					$jrows[$m]['Meter'.$meter_address[$s].'_phase3'] = $phase3[$s.'_'.$m];
 					
 				}else{
-					$jrows[$t]['datetime'] = $format_datetime[$s.'_'.$t];
-					$jrows[$t]['M'.$meter_address[$s].'Pa'] = $phase1_apparent_power[$s."_".$t];
-					$jrows[$t]['M'.$meter_address[$s].'Pb'] = $phase2_apparent_power[$s."_".$t];
-					$jrows[$t]['M'.$meter_address[$s].'Pc'] = $phase3_apparent_power[$s."_".$t];
+					
+					$jrows[$m]['datetime'] = $format_datetime[$MaxMeterId.'_'.$m];
+					
+					if($phase1[$s.'_'.$m] == null){$jrows[$m]['Meter'.$meter_address[$s].'_phase1'] = '0.00000000';}else{$jrows[$m]['Meter'.$meter_address[$s].'_phase1'] = $phase1[$s.'_'.$m];}
+					if($phase2[$s.'_'.$m] == null){$jrows[$m]['Meter'.$meter_address[$s].'_phase2'] = '0.00000000';}else{$jrows[$m]['Meter'.$meter_address[$s].'_phase2'] = $phase2[$s.'_'.$m];}
+					if($phase3[$s.'_'.$m] == null){$jrows[$m]['Meter'.$meter_address[$s].'_phase3'] = '0.00000000';}else{$jrows[$m]['Meter'.$meter_address[$s].'_phase3'] = $phase3[$s.'_'.$m];}
 					
 					for($i = 1; $i < $mchk; $i++){
-						$jrows[$t]['M'.$meter_address[$i].'Pa'] = $phase1_apparent_power[$i.'_'.$t];
-					    $jrows[$t]['M'.$meter_address[$i].'Pb'] = $phase2_apparent_power[$i.'_'.$t];
-					    $jrows[$t]['M'.$meter_address[$i].'Pc'] = $phase3_apparent_power[$i.'_'.$t];	 
+						if($phase1[$i.'_'.$m] == null){$jrows[$m]['Meter'.$meter_address[$i].'_phase1'] = '0.00000000';}else{$jrows[$m]['Meter'.$meter_address[$i].'_phase1'] = $phase1[$i.'_'.$m];}
+					    if($phase2[$i.'_'.$m] == null){$jrows[$m]['Meter'.$meter_address[$i].'_phase2'] = '0.00000000';}else{$jrows[$m]['Meter'.$meter_address[$i].'_phase2'] = $phase2[$i.'_'.$m];}
+					    if($phase3[$i.'_'.$m] == null){$jrows[$m]['Meter'.$meter_address[$i].'_phase3'] = '0.00000000';}else{$jrows[$m]['Meter'.$meter_address[$i].'_phase3'] = $phase3[$i.'_'.$m];}						
 					}
 					
 				}//if
-			}//for($t)
+			}//for($m)
 		
 		}//for($s)
 			

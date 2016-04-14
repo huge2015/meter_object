@@ -47,7 +47,7 @@ class ModCurlDataHelper
 	public function getQueueData($limit) {
 		// read electrical status
 		$db = JFactory::getDbo();
-		$query = "SELECT * FROM joomla3_queue  ORDER BY queue_id ASC";
+		$query = "SELECT * FROM joomla3_queue  ORDER BY queue_id DESC";
         
 		$db->setQuery($query, 0, $limit);
 		$rows = $db->loadAssocList();

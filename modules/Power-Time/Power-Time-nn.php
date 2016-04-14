@@ -121,7 +121,7 @@ $live_data = trim(JRequest::getVar('live_data', '1'));
 		}
 
 ?>
-   
+<!--script src="https://www.google.com/jsapi" type="text/javascript"></script-->   
 <script type="text/javascript">// <![CDATA[
     
 	startLoading();
